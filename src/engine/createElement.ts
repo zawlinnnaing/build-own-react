@@ -1,22 +1,22 @@
-import { SimpleReactElementNode } from "./types";
+import { Fiber } from "./fiber";
 
 export default function createElement(
   type: string,
   props: any,
-  ...children: (SimpleReactElementNode | string)[]
-): SimpleReactElementNode {
+  ...children: (Fiber | string)[]
+): Fiber {
   return {
     type,
     props: {
       ...props,
       children: children.map((child) => {
-        return typeof child === "string" ? createTextElement(child) : child;
+        return typeof child === "object" ? child : createTextElement(child);
       }),
     },
   };
 }
 
-function createTextElement(text: string) {
+function createTextElement(text: any) {
   return {
     type: "TEXT_ELEMENT",
     props: {
