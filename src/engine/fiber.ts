@@ -4,7 +4,7 @@ type FunctionComponent = (props: Record<string, any>) => Fiber;
 
 export interface Hook<T = any> {
   state: T;
-  queue?: UseStateAction<T>[];
+  queue: UseStateAction<T>[];
 }
 
 export interface Fiber {

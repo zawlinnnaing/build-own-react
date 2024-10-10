@@ -12,20 +12,18 @@ export default function useState<T>(
     ];
   const hook: Hook<T> = {
     state: oldHook?.state ?? initialValue,
+    queue: [],
   };
-  renderWorker.currentHookFiber?.hooks?.push(hook);
-  renderWorker.setHookIndex(renderWorker.hookIndex + 1);
 
   oldHook?.queue?.forEach((action) => {
     hook.state = action(hook.state);
   });
 
   const setState = (action: UseStateAction<T>) => {
-    console.log("🚀 ~ setState ~ action:", action);
     if (!renderWorker.currentRoot) {
       throw new Error("Current root is not defined");
     }
-    hook.queue?.push(action);
+    hook.queue.push(action);
     renderWorker.setRoot({
       dom: renderWorker.currentRoot.dom,
       props: renderWorker.currentRoot.props ?? {},
@@ -33,6 +31,9 @@ export default function useState<T>(
       alternate: renderWorker.currentRoot,
     });
   };
+
+  renderWorker.currentHookFiber?.hooks?.push(hook);
+  renderWorker.hookIndex += 1;
 
   return [hook.state, setState];
 }

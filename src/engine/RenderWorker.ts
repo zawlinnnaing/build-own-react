@@ -13,19 +13,23 @@ export class RenderWorker {
    */
   public currentRoot: Fiber | undefined;
 
-  public setHookIndex = (index: number) => {
-    this.hookIndex = index;
-  };
-
   public startWork() {
     requestIdleCallback(this.workloop);
   }
 
-  public setRoot(nextUnitOfWork: Fiber) {
-    this.nextUnitOfWork = nextUnitOfWork;
-    this.wipRoot = nextUnitOfWork;
+  public setRoot(element: Fiber) {
+    this.wipRoot = element;
+    this.nextUnitOfWork = element;
     this.deletions = [];
   }
+
+  public setWipRoot = (root: Fiber) => {
+    this.wipRoot = root;
+  };
+
+  public setDeletions = (fibers: Fiber[]) => {
+    this.deletions = fibers;
+  };
 
   public workloop = (deadline: IdleDeadline) => {
     let shouldYield = false;
@@ -124,7 +128,18 @@ export class RenderWorker {
       });
   };
 
-  private commitWork(fiber: Fiber) {
+  private commitDeletion = (fiber: Fiber, domParent: Node) => {
+    if (!fiber.dom) {
+      return;
+    }
+    if (domParent) {
+      domParent.removeChild(fiber.dom);
+    } else if (fiber.child) {
+      this.commitDeletion(fiber.child, domParent);
+    }
+  };
+
+  private commitWork = (fiber: Fiber) => {
     let domParentFiber = fiber.parent;
     while (!domParentFiber?.dom) {
       domParentFiber = domParentFiber?.parent;
@@ -137,7 +152,7 @@ export class RenderWorker {
     if (fiber.effectTag === "PLACEMENT" && fiber.dom) {
       domParent.appendChild(fiber.dom);
     } else if (fiber.effectTag === "DELETION") {
-      domParent.removeChild(fiber.dom);
+      this.commitDeletion(fiber, domParent);
     } else if (fiber.effectTag === "UPDATE") {
       this.updateDOM(fiber.dom, fiber.props, fiber.alternate?.props);
     }
@@ -147,7 +162,7 @@ export class RenderWorker {
     if (fiber.sibling) {
       this.commitWork(fiber.sibling);
     }
-  }
+  };
 
   public performUnitOfWork(wipFiber: Fiber): Fiber | undefined {
     // 1: Add DOM node
@@ -198,10 +213,8 @@ export class RenderWorker {
     let prevSibling: Fiber | undefined = undefined;
     let index = 0;
     let oldChildFiber = wipFiber.alternate?.child;
-    console.log("🚀 ~ RenderWorker ~ elements:", elements);
     while (index < elements.length || !!oldChildFiber) {
       const element: Fiber | undefined = elements[index];
-      console.log("element", element);
       const sameType = oldChildFiber?.type === element?.type;
 
       let newFiber: Fiber | undefined = undefined;
@@ -227,9 +240,14 @@ export class RenderWorker {
         oldChildFiber.effectTag = "DELETION";
         this.deletions.push(oldChildFiber);
       }
+
+      if (oldChildFiber) {
+        oldChildFiber = oldChildFiber.sibling;
+      }
+
       if (index === 0) {
         wipFiber.child = newFiber;
-      } else if (prevSibling) {
+      } else if (element && prevSibling) {
         prevSibling.sibling = newFiber;
       }
       prevSibling = newFiber;
