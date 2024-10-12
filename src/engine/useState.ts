@@ -13,6 +13,7 @@ export default function useState<T>(
   const hook: Hook<T> = {
     state: oldHook?.state ?? initialValue,
     queue: [],
+    tag: "STATE",
   };
 
   oldHook?.queue?.forEach((action) => {
@@ -35,5 +36,5 @@ export default function useState<T>(
   renderWorker.currentHookFiber?.hooks?.push(hook);
   renderWorker.hookIndex += 1;
 
-  return [hook.state, setState];
+  return [hook.state ?? initialValue, setState];
 }

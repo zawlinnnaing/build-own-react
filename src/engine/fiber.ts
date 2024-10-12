@@ -3,7 +3,10 @@ import { UseStateAction } from "./useState";
 type FunctionComponent = (props: Record<string, any>) => Fiber;
 
 export interface Hook<T = any> {
-  state: T;
+  state?: T;
+  tag: "STATE" | "EFFECT";
+  deps?: any[];
+  effect?: () => void | Function;
   queue: UseStateAction<T>[];
 }
 

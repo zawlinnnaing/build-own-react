@@ -1,10 +1,10 @@
-import { Fiber } from "./fiber";
-import { createDOM } from "./render";
+import { Fiber, Hook } from "./fiber";
 
 export class RenderWorker {
   private nextUnitOfWork: Fiber | undefined;
   private wipRoot: Fiber | undefined;
   private deletions: Fiber[] = [];
+  public pendingEffects: Function[] = [];
 
   public currentHookFiber: Fiber | undefined;
   public hookIndex = 0;
@@ -43,11 +43,31 @@ export class RenderWorker {
     requestIdleCallback(this.workloop);
   };
 
+  public performUnitOfWork(wipFiber: Fiber): Fiber | undefined {
+    if (wipFiber.type instanceof Function) {
+      this.updateFunctionComponent(wipFiber);
+    } else {
+      this.updateHostComponent(wipFiber);
+    }
+    if (wipFiber.child) {
+      return wipFiber.child;
+    }
+    let nextFiber: Fiber | undefined = wipFiber;
+    while (nextFiber) {
+      if (nextFiber.sibling) {
+        return nextFiber.sibling;
+      }
+      nextFiber = nextFiber.parent;
+    }
+  }
+
   private commitRoot() {
     this.deletions.forEach(this.commitWork);
     if (this.wipRoot?.child) {
       this.commitWork(this.wipRoot.child);
     }
+    this.pendingEffects.forEach((effect) => effect());
+    this.pendingEffects = [];
     this.currentRoot = this.wipRoot;
     this.wipRoot = undefined;
   }
@@ -164,27 +184,6 @@ export class RenderWorker {
     }
   };
 
-  public performUnitOfWork(wipFiber: Fiber): Fiber | undefined {
-    // 1: Add DOM node
-    // 2: Create new fibers
-    // 3: Return next unit of work
-    if (wipFiber.type instanceof Function) {
-      this.updateFunctionComponent(wipFiber);
-    } else {
-      this.updateHostComponent(wipFiber);
-    }
-    if (wipFiber.child) {
-      return wipFiber.child;
-    }
-    let nextFiber: Fiber | undefined = wipFiber;
-    while (nextFiber) {
-      if (nextFiber.sibling) {
-        return nextFiber.sibling;
-      }
-      nextFiber = nextFiber.parent;
-    }
-  }
-
   private updateHostComponent(fiber: Fiber) {
     if (!fiber.dom) {
       fiber.dom = this.createDOM(fiber);
@@ -205,16 +204,16 @@ export class RenderWorker {
 
   private reconcileChildren(
     wipFiber: Fiber,
-    elements: Fiber["props"]["children"]
+    children: Fiber["props"]["children"]
   ) {
-    if (!elements) {
+    if (!children) {
       return;
     }
     let prevSibling: Fiber | undefined = undefined;
     let index = 0;
     let oldChildFiber = wipFiber.alternate?.child;
-    while (index < elements.length || !!oldChildFiber) {
-      const element: Fiber | undefined = elements[index];
+    while (index < children.length || !!oldChildFiber) {
+      const element: Fiber | undefined = children[index];
       const sameType = oldChildFiber?.type === element?.type;
 
       let newFiber: Fiber | undefined = undefined;
