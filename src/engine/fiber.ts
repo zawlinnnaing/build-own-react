@@ -2,11 +2,14 @@ import { UseStateAction } from "./useState";
 
 type FunctionComponent = (props: Record<string, any>) => Fiber;
 
+export type EffectCallback = () => void | (() => void);
+
 export interface Hook<T = any> {
   state?: T;
   tag: "STATE" | "EFFECT";
   deps?: any[];
-  effect?: () => void | Function;
+  effect?: EffectCallback;
+  cleanup?: () => void;
   queue: UseStateAction<T>[];
 }
 

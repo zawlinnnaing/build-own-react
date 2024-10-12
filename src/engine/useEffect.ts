@@ -1,7 +1,7 @@
-import { Hook } from "./fiber";
+import { EffectCallback, Hook } from "./fiber";
 import { renderWorker } from "./RenderWorker";
 
-export default function useEffect(effect: () => void | Function, deps?: any[]) {
+export default function useEffect(effect: EffectCallback, deps?: any[]) {
   const oldHook =
     renderWorker.currentHookFiber?.alternate?.hooks?.[
       renderWorker.hookIndex ?? 0
@@ -24,7 +24,8 @@ export default function useEffect(effect: () => void | Function, deps?: any[]) {
       hook.deps.length !== oldHook?.deps?.length) &&
     hook.effect
   ) {
-    renderWorker.pendingEffects.push(hook.effect);
+    oldHook?.cleanup?.();
+    renderWorker.pendingEffectHooks.push(hook);
   }
 
   renderWorker.currentHookFiber?.hooks?.push(hook);

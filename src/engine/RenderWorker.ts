@@ -4,7 +4,7 @@ export class RenderWorker {
   private nextUnitOfWork: Fiber | undefined;
   private wipRoot: Fiber | undefined;
   private deletions: Fiber[] = [];
-  public pendingEffects: Function[] = [];
+  public pendingEffectHooks: Hook[] = [];
 
   public currentHookFiber: Fiber | undefined;
   public hookIndex = 0;
@@ -66,11 +66,18 @@ export class RenderWorker {
     if (this.wipRoot?.child) {
       this.commitWork(this.wipRoot.child);
     }
-    this.pendingEffects.forEach((effect) => effect());
-    this.pendingEffects = [];
+    this.runEffects();
     this.currentRoot = this.wipRoot;
     this.wipRoot = undefined;
   }
+
+  private runEffects = () => {
+    this.pendingEffectHooks.forEach((hook) => {
+      // @ts-expect-error
+      hook.cleanup = hook.effect?.();
+    });
+    this.pendingEffectHooks = [];
+  };
 
   private isNewProps = (props: Fiber["props"], prevProps: Fiber["props"]) => {
     return (key: string) => props[key] !== prevProps[key];
