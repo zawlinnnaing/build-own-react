@@ -1,4 +1,4 @@
-import SimpleReact from "./engine";
+import SimpleReact from "./simple-react";
 import "./style.css";
 
 const App = () => {
@@ -26,10 +26,10 @@ const App = () => {
   return (
     <div>
       <button onClick={() => setCount((prev) => prev + 1)}>
-        Count is: {count}
+        Count is (+1): {count}
       </button>
       <button onClick={() => setCount2((prev) => prev * 10)}>
-        Count 2 is: {count2}
+        Count 2 is (*10): {count2}
       </button>
     </div>
   );

@@ -6,7 +6,7 @@ This implementation supports `function component` and includes two hooks:
 - `useState`
 - `useEffect`
 
-You can find React.js implementation in [engine](./src/engine/) directory.
+You can find React.js implementation in [simple-react](./src/simple-react/) directory.
 
 ## Local setup
 
